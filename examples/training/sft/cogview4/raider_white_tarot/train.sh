@@ -14,12 +14,12 @@ export FINETRAINERS_LOG_LEVEL="DEBUG"
 BACKEND="ptd"
 
 # In this setting, I'm using 2 GPUs on a 4-GPU node for training
-NUM_GPUS=2
-CUDA_VISIBLE_DEVICES="2,3"
+NUM_GPUS=1
+CUDA_VISIBLE_DEVICES="0"
 
 # Check the JSON files for the expected JSON format
-TRAINING_DATASET_CONFIG="examples/training/sft/cogview4/raider_white_tarot/training.json"
-VALIDATION_DATASET_FILE="examples/training/sft/cogview4/raider_white_tarot/validation.json"
+TRAINING_DATASET_CONFIG="D:/PyCharmWorkSpace/AIGC/finetrainers/examples/training/sft/cogview4/raider_white_tarot/training.json"
+VALIDATION_DATASET_FILE="D:/PyCharmWorkSpace/AIGC/finetrainers/examples/training/sft/cogview4/raider_white_tarot/validation.json"
 
 # Depending on how many GPUs you have available, choose your degree of parallelism and technique!
 DDP_1="--parallel_backend $BACKEND --pp_degree 1 --dp_degree 1 --dp_shards 1 --cp_degree 1 --tp_degree 1"
@@ -31,13 +31,13 @@ HSDP_2_2="--parallel_backend $BACKEND --pp_degree 1 --dp_degree 2 --dp_shards 2 
 
 # Parallel arguments
 parallel_cmd=(
-  $DDP_2
+  $DDP_1
 )
 
 # Model arguments
 model_cmd=(
   --model_name "cogview4"
-  --pretrained_model_name_or_path "THUDM/CogView4-6B"
+  --pretrained_model_name_or_path "D:\\modelscope_cache\\models\\CogView4-6B"
 )
 
 # Dataset arguments
@@ -141,14 +141,8 @@ if [ "$BACKEND" == "accelerate" ]; then
 elif [ "$BACKEND" == "ptd" ]; then
 
   export CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES
-  
-  torchrun \
-    --standalone \
-    --nnodes=1 \
-    --nproc_per_node=$NUM_GPUS \
-    --rdzv_backend c10d \
-    --rdzv_endpoint="localhost:0" \
-    train.py \
+  export RANK=0
+  /mnt/d/Miniconda3/envs/CogView/python.exe D:/PyCharmWorkSpace/AIGC/finetrainers/train.py \
       "${parallel_cmd[@]}" \
       "${model_cmd[@]}" \
       "${dataset_cmd[@]}" \

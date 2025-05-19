@@ -29,10 +29,8 @@ from finetrainers.utils._common import DIFFUSERS_TRANSFORMER_BLOCK_NAMES
 
 from .base import BaseCheckpointer, BaseParallelBackend
 
-
 if TYPE_CHECKING:
     from finetrainers import optimizer
-
 
 _device_type, _device_module = get_device_info()
 logger = get_logger()
@@ -40,18 +38,18 @@ logger = get_logger()
 
 class PytorchDTensorParallelBackend(BaseParallelBackend):
     def __init__(
-        self,
-        world_size: int,
-        pp_degree: int = 1,
-        dp_degree: int = 1,
-        dp_shards: int = -1,
-        cp_degree: int = 1,
-        tp_degree: int = 1,
-        backend: str = "nccl",
-        timeout: int = 180,
-        logging_dir: Optional[str] = None,
-        output_dir: Optional[str] = None,
-        gradient_accumulation_steps: Optional[int] = None,
+            self,
+            world_size: int,
+            pp_degree: int = 1,
+            dp_degree: int = 1,
+            dp_shards: int = -1,
+            cp_degree: int = 1,
+            tp_degree: int = 1,
+            backend: str = "nccl",
+            timeout: int = 180,
+            logging_dir: Optional[str] = None,
+            output_dir: Optional[str] = None,
+            gradient_accumulation_steps: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -77,7 +75,8 @@ class PytorchDTensorParallelBackend(BaseParallelBackend):
                 f"World size {world_size} must be divisible by the product of all parallel degrees and data parallel shards."
             )
 
-        torch.distributed.init_process_group(backend=self._backend, timeout=datetime.timedelta(seconds=self._timeout))
+        torch.distributed.init_process_group(backend='gloo',rank=0,
+                                             timeout=datetime.timedelta(seconds=self._timeout), world_size=1)
         _device_module.set_device(self.local_rank)
 
         logger.info(
@@ -97,7 +96,7 @@ class PytorchDTensorParallelBackend(BaseParallelBackend):
         enable_determinism(seed, world_mesh)
 
     def apply_ddp(
-        self, model: torch.nn.Module, device_mesh: Optional[torch.distributed.DeviceMesh] = None
+            self, model: torch.nn.Module, device_mesh: Optional[torch.distributed.DeviceMesh] = None
     ) -> torch.nn.Module:
         if device_mesh is None:
             device_mesh = self.get_mesh()
@@ -106,14 +105,14 @@ class PytorchDTensorParallelBackend(BaseParallelBackend):
         return model
 
     def apply_fsdp2(
-        self,
-        model: torch.nn.Module,
-        param_dtype: torch.dtype,
-        reduce_dtype: torch.dtype,
-        output_dtype: torch.dtype,
-        pp_enabled: bool = False,
-        cpu_offload: bool = False,
-        device_mesh: Optional[torch.distributed.DeviceMesh] = None,
+            self,
+            model: torch.nn.Module,
+            param_dtype: torch.dtype,
+            reduce_dtype: torch.dtype,
+            output_dtype: torch.dtype,
+            pp_enabled: bool = False,
+            cpu_offload: bool = False,
+            device_mesh: Optional[torch.distributed.DeviceMesh] = None,
     ) -> torch.nn.Module:
         if device_mesh is None:
             device_mesh = self.get_mesh()
@@ -122,7 +121,7 @@ class PytorchDTensorParallelBackend(BaseParallelBackend):
         return model
 
     def apply_context_parallel(
-        self, model: torch.nn.Module, device_mesh: Optional[torch.distributed.DeviceMesh] = None
+            self, model: torch.nn.Module, device_mesh: Optional[torch.distributed.DeviceMesh] = None
     ) -> torch.nn.Module:
         if device_mesh is None:
             device_mesh = self.get_mesh()
@@ -143,7 +142,7 @@ class PytorchDTensorParallelBackend(BaseParallelBackend):
         return dataset
 
     def prepare_dataloader(
-        self, dataset: torch.utils.data.IterableDataset, batch_size: int, num_workers: int, pin_memory: bool
+            self, dataset: torch.utils.data.IterableDataset, batch_size: int, num_workers: int, pin_memory: bool
     ) -> DPDataLoader:
         if self._dp_degree == 1:
             dp_local_rank = 0
@@ -297,18 +296,18 @@ class ModelWrapper(torch.distributed.checkpoint.stateful.Stateful):
 
 class PTDCheckpointer(BaseCheckpointer):
     def __init__(
-        self,
-        dataloader: torch.utils.data.DataLoader,
-        model_parts: List[torch.nn.Module],
-        optimizers: "optimizer.OptimizerWrapper",
-        schedulers: "optimizer.SchedulerWrapper",
-        states: Dict[str, Any],
-        checkpointing_steps: int,
-        checkpointing_limit: int,
-        output_dir: str,
-        enable: bool = True,
-        _callback_fn: Callable[[Dict[str, Any]], Dict[str, Any]] = None,
-        _prefix: str = "finetrainers_step",
+            self,
+            dataloader: torch.utils.data.DataLoader,
+            model_parts: List[torch.nn.Module],
+            optimizers: "optimizer.OptimizerWrapper",
+            schedulers: "optimizer.SchedulerWrapper",
+            states: Dict[str, Any],
+            checkpointing_steps: int,
+            checkpointing_limit: int,
+            output_dir: str,
+            enable: bool = True,
+            _callback_fn: Callable[[Dict[str, Any]], Dict[str, Any]] = None,
+            _prefix: str = "finetrainers_step",
     ) -> None:
         self.states = states
         self.states.update(
@@ -406,13 +405,13 @@ class PTDCheckpointer(BaseCheckpointer):
         checkpoints = sorted(
             self.output_dir.glob(f"{self._prefix}_*"), key=lambda x: int(x.name.split("_")[-1]), reverse=True
         )
-        for checkpoint in checkpoints[self.checkpointing_limit :]:
+        for checkpoint in checkpoints[self.checkpointing_limit:]:
             logger.info(f"Deleting stale checkpoint: {checkpoint}")
             shutil.rmtree(checkpoint, ignore_errors=True)
 
 
 def gather_state_dict_on_cpu_rank0(
-    model, device: Optional[torch.device] = None, *, is_main_process: bool
+        model, device: Optional[torch.device] = None, *, is_main_process: bool
 ) -> Dict[str, Any]:
     cpu_state_dict = {}
     sharded_sd = model.state_dict()
@@ -464,13 +463,13 @@ def apply_ddp(model: torch.nn.Module, dp_mesh: torch.distributed.device_mesh.Dev
 
 
 def apply_fsdp2(
-    model: torch.nn.Module,
-    dp_mesh: torch.distributed.device_mesh.DeviceMesh,
-    param_dtype: torch.dtype,
-    reduce_dtype: torch.dtype,
-    output_dtype: torch.dtype,
-    pp_enabled: bool = False,
-    cpu_offload: bool = False,
+        model: torch.nn.Module,
+        dp_mesh: torch.distributed.device_mesh.DeviceMesh,
+        param_dtype: torch.dtype,
+        reduce_dtype: torch.dtype,
+        output_dtype: torch.dtype,
+        pp_enabled: bool = False,
+        cpu_offload: bool = False,
 ) -> None:
     """Apply FSDP2 on a model."""
     mp_policy = MixedPrecisionPolicy(param_dtype, reduce_dtype, output_dtype, cast_forward_inputs=True)
@@ -500,9 +499,9 @@ def apply_fsdp2(
 
 
 def apply_context_parallel(
-    model: torch.nn.Module,
-    mesh: torch.distributed.device_mesh.DeviceMesh,
-    plan: Optional[Dict[str, ContextParallelModelPlan]] = None,
+        model: torch.nn.Module,
+        mesh: torch.distributed.device_mesh.DeviceMesh,
+        plan: Optional[Dict[str, ContextParallelModelPlan]] = None,
 ) -> None:
     """Apply context parallel on a model."""
     logger.debug(f"Applying context parallel with CP mesh: {mesh}")

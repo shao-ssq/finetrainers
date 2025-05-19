@@ -1,15 +1,21 @@
+import os
 import sys
 import traceback
+
+import torch
 
 from finetrainers import BaseArgs, ControlTrainer, SFTTrainer, TrainingType, get_logger
 from finetrainers.config import _get_model_specifiction_cls
 from finetrainers.trainer.control_trainer.config import ControlFullRankConfig, ControlLowRankConfig
 from finetrainers.trainer.sft_trainer.config import SFTFullRankConfig, SFTLowRankConfig
 
-
+os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
+os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
 logger = get_logger()
-
-
+os.environ['MASTER_ADDR'] = 'localhost'
+os.environ['MASTER_PORT'] = '12345'
+os.environ['USE_LIBUV'] = '0'
+# torch.distributed.init_process_group(backend='gloo', rank=0, world_size=1)
 def main():
     try:
         import multiprocessing
